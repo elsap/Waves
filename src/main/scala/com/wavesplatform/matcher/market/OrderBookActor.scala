@@ -17,6 +17,7 @@ import com.wavesplatform.utils.Base58
 import com.wavesplatform.utx.UtxPool
 import io.netty.channel.group.ChannelGroup
 import play.api.libs.json._
+import scorex.account.Address
 import scorex.transaction.ValidationError
 import scorex.transaction.ValidationError.{AccountBalanceError, GenericError, OrderValidationError}
 import scorex.transaction.assets.exchange._
@@ -353,6 +354,8 @@ object OrderBookActor {
   }
 
   case class ForceCancelOrder(assetPair: AssetPair, orderId: String) extends OrderBookRequest
+
+  case class BlacklistAddresses(addresses: Set[Address])
 
   case object OrderCleanup
 

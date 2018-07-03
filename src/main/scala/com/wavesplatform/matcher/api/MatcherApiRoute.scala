@@ -1,5 +1,7 @@
 package com.wavesplatform.matcher.api
 
+import java.io.{PrintWriter, StringWriter}
+
 import akka.actor.ActorRef
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directive1, Route}
@@ -15,11 +17,12 @@ import com.wavesplatform.matcher.model.MatcherModel.{Level, Price}
 import com.wavesplatform.matcher.model.{LevelAgg, LimitOrder, OrderBook}
 import com.wavesplatform.matcher.{AssetPairBuilder, MatcherSettings}
 import com.wavesplatform.settings.RestAPISettings
+import com.wavesplatform.state._
 import com.wavesplatform.utils.Base58
 import io.swagger.annotations._
 import javax.ws.rs.Path
 import play.api.libs.json._
-import scorex.account.PublicKeyAccount
+import scorex.account.{Address, PublicKeyAccount}
 import scorex.api.http._
 import scorex.transaction.assets.exchange.OrderJson._
 import scorex.transaction.assets.exchange.{AssetPair, Order}
@@ -29,6 +32,7 @@ import scorex.wallet.Wallet
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 @Path("/matcher")
@@ -50,7 +54,7 @@ case class MatcherApiRoute(wallet: Wallet,
     pathPrefix("matcher") {
       matcherPublicKey ~ getOrderBook ~ place ~ getAssetPairAndPublicKeyOrderHistory ~ getPublicKeyOrderHistory ~
         getAllOrderHistory ~ getTradableBalance ~ reservedBalance ~ orderStatus ~
-        historyDelete ~ cancel ~ orderbooks ~ orderBookDelete ~ getTransactionsByOrder ~ forceCancelOrder
+        historyDelete ~ cancel ~ orderbooks ~ orderBookDelete ~ getTransactionsByOrder ~ forceCancelOrder ~ blacklistAddresses
     }
 
   private def withAssetPair(a1: String, a2: String, redirectToInverse: Boolean = false, suffix: String = ""): Directive1[AssetPair] =
@@ -404,6 +408,20 @@ case class MatcherApiRoute(wallet: Wallet,
       (txWriter ? GetTransactionsByOrder(orderId))
         .mapTo[MatcherResponse]
         .map(r => r.code -> r.json))
+  }
+
+  def blacklistAddresses: Route = (path("blacklist") & withAuth) {
+    json[Seq[String]] { addresses =>
+      try {
+        matcher ! BlacklistAddresses(addresses.map(Address.fromString(_).explicitGet()).toSet)
+        StatusCodes.Accepted
+      } catch {
+        case NonFatal(e) =>
+          val sw = new StringWriter
+          e.printStackTrace(new PrintWriter(sw))
+          StatusCodes.BadRequest -> sw.toString
+      }
+    }
   }
 }
 
