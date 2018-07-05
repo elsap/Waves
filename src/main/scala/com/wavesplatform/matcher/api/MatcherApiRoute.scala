@@ -411,15 +411,17 @@ case class MatcherApiRoute(wallet: Wallet,
   }
 
   def blacklistAddresses: Route = (path("blacklist" / Segment) & withAuth) { assetIdStr =>
-    json[Seq[String]] { addresses =>
-      try {
-        matcher ! BlacklistAddresses(ByteStr(Base58.decode(assetIdStr).get), addresses.map(Address.fromString(_).explicitGet()).toSet)
-        StatusCodes.Accepted
-      } catch {
-        case NonFatal(e) =>
-          val sw = new StringWriter
-          e.printStackTrace(new PrintWriter(sw))
-          StatusCodes.BadRequest -> sw.toString
+    withoutSizeLimit {
+      json[Seq[String]] { addresses =>
+        try {
+          matcher ! BlacklistAddresses(ByteStr(Base58.decode(assetIdStr).get), addresses.map(Address.fromString(_).explicitGet()).toSet)
+          StatusCodes.Accepted
+        } catch {
+          case NonFatal(e) =>
+            val sw = new StringWriter
+            e.printStackTrace(new PrintWriter(sw))
+            StatusCodes.BadRequest -> sw.toString
+        }
       }
     }
   }
