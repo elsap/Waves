@@ -410,10 +410,10 @@ case class MatcherApiRoute(wallet: Wallet,
         .map(r => r.code -> r.json))
   }
 
-  def blacklistAddresses: Route = (path("blacklist") & withAuth) {
+  def blacklistAddresses: Route = (path("blacklist" / Segment) & withAuth) { assetIdStr =>
     json[Seq[String]] { addresses =>
       try {
-        matcher ! BlacklistAddresses(addresses.map(Address.fromString(_).explicitGet()).toSet)
+        matcher ! BlacklistAddresses(ByteStr(Base58.decode(assetIdStr).get), addresses.map(Address.fromString(_).explicitGet()).toSet)
         StatusCodes.Accepted
       } catch {
         case NonFatal(e) =>
