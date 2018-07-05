@@ -1,6 +1,6 @@
 package scorex.transaction.smart
 
-import com.wavesplatform.lang.v1.traits.{Proven, _}
+import com.wavesplatform.lang.v1.traits.{Header, Proven, APair, Ord, OrdType, Tx, Recipient, DataItem}
 import com.wavesplatform.state._
 import scodec.bits.ByteVector
 import scorex.account.{Address, AddressOrAlias, Alias}
