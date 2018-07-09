@@ -14,8 +14,8 @@ package object matcher {
                    orderType: OrderType,
                    price: Long,
                    amount: Long,
-                   timeToLive: Duration = 30.days - 1.seconds): Order = {
-    val creationTime        = System.currentTimeMillis()
+                   timeToLive: Duration = 30.days - 1.seconds,
+                   creationTime: Long = System.currentTimeMillis()): Order = {
     val timeToLiveTimestamp = creationTime + timeToLive.toMillis
     val matcherPublicKey    = matcherNode.publicKey
     val unsigned            = Order(node.publicKey, matcherPublicKey, pair, orderType, price, amount, creationTime, timeToLiveTimestamp, MatcherFee, Array())

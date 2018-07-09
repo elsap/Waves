@@ -4,8 +4,9 @@ import com.typesafe.config.{Config, ConfigFactory}
 import com.wavesplatform.crypto
 import com.wavesplatform.it.api.AsyncHttpApi._
 import com.wavesplatform.it.api.{LevelResponse, MatcherStatusResponse}
-import com.wavesplatform.it.sync.CustomFeeTransactionSuite.{defaultAssetQuantity, pk, seed}
+import com.wavesplatform.it.sync.CustomFeeTransactionSuite.defaultAssetQuantity
 import com.wavesplatform.it.transactions.NodesFromDocker
+import com.wavesplatform.it.util._
 import com.wavesplatform.it.{Node, ReportingTestName}
 import com.wavesplatform.matcher.api.CancelOrderRequest
 import com.wavesplatform.matcher.market.MatcherActor
@@ -19,7 +20,6 @@ import scorex.transaction.assets.IssueTransactionV1
 import scorex.transaction.assets.exchange.{AssetPair, Order, OrderType}
 import scorex.transaction.lease.{LeaseCancelTransactionV1, LeaseTransactionV1}
 import scorex.transaction.transfer._
-import com.wavesplatform.it.util._
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -376,6 +376,37 @@ class MatcherTestSuite
     Await.ready(matcherNode.waitForHeightArise, 1.minute)
   }
 
+  "tradableBalance should be same as the balance after executing partial orders" in {
+    Await.result(matcherNode.waitForHeightArise, 1.minute)
+
+    val bobOrder        = prepareOrder(bobNode, matcherNode, aliceWavesPair, OrderType.BUY, 200.waves, 44543041, 10.minutes)
+    val (orderBuyId, _) = matcherPlaceOrder(matcherNode, bobOrder)
+    waitForOrderStatus(matcherNode, aliceWavesPair, orderBuyId, "Accepted", 1.minute)
+
+    // matcherNode.getTransactionsByOrder()
+    ordersRequestsGen(10, aliceNode, aliceWavesPair, OrderType.SELL, 543041, 0.003123.waves)
+    nodes.waitForHeightArise()
+
+    matcherCancelOrder(bobNode, aliceWavesPair, orderBuyId)
+
+    val aliceTradable = Await.result(matcherNode.getTradableBalance(aliceNode.address, aliceAsset, "WAVES"), 1.minute)("WAVES")
+    val bobTradable   = Await.result(matcherNode.getTradableBalance(bobNode.address, aliceAsset, "WAVES"), 1.minute)("WAVES")
+    val aliceBalance  = Await.result(matcherNode.accountBalances(aliceNode.address), 1.minute)
+    val bobBalance    = Await.result(matcherNode.accountBalances(bobNode.address), 1.minute)
+    aliceTradable shouldBe aliceBalance._1
+    bobTradable shouldBe bobBalance._1
+  }
+
+  /**
+    * @return Order's id
+    */
+  private def ordersRequestsGen(n: Int, node: Node, assetPair: AssetPair, orderType: OrderType, amount: Long, price: Long): Seq[String] = {
+    val ts = System.currentTimeMillis()
+    (1 to n).map { i =>
+      matcherPlaceOrder(matcherNode, prepareOrder(node, matcherNode, assetPair, orderType, price, amount, 10.minutes + i.seconds, ts + i))._1
+    }
+  }
+
   "owner moves assets/waves to another account and order become an invalid" - {
     val bobAssetName             = "BobCoin3"
     var bobAssetIdRaw: String    = ""
@@ -684,7 +715,7 @@ object MatcherTestSuite {
   import com.wavesplatform.it.NodeConfigs._
 
   private val ForbiddenAssetId = "FdbnAsset"
-  private val AssetQuantity    = 1000
+  private val AssetQuantity    = 10000000000L
   private val MatcherFee       = 300000
   private val TransactionFee   = 300000
   private val Waves            = 100000000L
