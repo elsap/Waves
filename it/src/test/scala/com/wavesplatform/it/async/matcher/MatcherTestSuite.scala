@@ -384,10 +384,13 @@ class MatcherTestSuite
     waitForOrderStatus(matcherNode, aliceWavesPair, orderBuyId, "Accepted", 1.minute)
 
     // matcherNode.getTransactionsByOrder()
-    ordersRequestsGen(10, aliceNode, aliceWavesPair, OrderType.SELL, 543041, 0.003123.waves)
+    ordersRequestsGen(5, aliceNode, aliceWavesPair, OrderType.SELL, 543041, 0.003123.waves)
     nodes.waitForHeightArise()
 
+    Await.result(matcherNode.waitFor[Int]("utx is empty")(_.utxSize, _ == 0, 1.second), 3.minute)
+
     matcherCancelOrder(bobNode, aliceWavesPair, orderBuyId)
+    nodes.waitForHeightArise()
 
     val aliceTradable = Await.result(matcherNode.getTradableBalance(aliceNode.address, aliceAsset, "WAVES"), 1.minute)("WAVES")
     val bobTradable   = Await.result(matcherNode.getTradableBalance(bobNode.address, aliceAsset, "WAVES"), 1.minute)("WAVES")
