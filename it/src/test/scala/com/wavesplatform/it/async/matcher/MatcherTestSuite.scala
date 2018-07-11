@@ -316,9 +316,9 @@ class MatcherTestSuite
     waitForOrderStatus(matcherNode, usdWavesPair, aliceOrderId, "Accepted", 1.minute)
 
     // Bob wants to buy some USD
-    val bobOrder1        = prepareOrder(bobNode, matcherNode, usdWavesPair, OrderType.SELL, price, 300000000)
-    val (bobOrder1Id, _) = matcherPlaceOrder(matcherNode, bobOrder1)
-    waitForOrderStatus(matcherNode, usdWavesPair, bobOrder1Id, "PartiallyFilled", 1.minute)
+    val bobOrder        = prepareOrder(bobNode, matcherNode, usdWavesPair, OrderType.SELL, price, 300000000)
+    val (bobOrderId, _) = matcherPlaceOrder(matcherNode, bobOrder)
+    waitForOrderStatus(matcherNode, usdWavesPair, bobOrderId, "PartiallyFilled", 1.minute)
 
     // Each side get fair amount of assets
     val exchangeTx = getTransactionsByOrder(matcherNode, aliceOrder.idStr()).headOption.getOrElse(fail("Expected an exchange transaction"))
@@ -334,6 +334,9 @@ class MatcherTestSuite
     aliceUsdBalance - defaultAssetQuantity should be(-1)
     bobWavesBalanceAfter - bobWavesBalanceBefore should be(-357143 - (BigInt(MatcherFee) * 357143 / 300000000).bigInteger.longValue())
     bobUsdBalance should be(1)
+
+    matcherCancelOrder(bobNode, usdWavesPair, bobOrderId) should be("OrderCanceled")
+    Await.ready(matcherNode.waitForHeightArise, 1.minute)
   }
 
   "trader should be able to place a buy waves for asset order without having waves" in {
