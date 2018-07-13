@@ -285,8 +285,7 @@ class SignAndBroadcastApiSuite extends BaseTransactionSuite {
     assert(signedRequest.amount == 1.waves)
     val signature  = Base58.decode((signedRequestJson \ "signature").as[String]).get
     val tx         = signedRequest.toTx.explicitGet()
-    val seed       = sender.seed(thirdAddress)
-    val privateKey = pkFromAddress(seed)
+    val privateKey = pkFromAddress(thirdAddress)
     assert(crypto.verify(signature, tx.bodyBytes(), privateKey.publicKey))
   }
 
