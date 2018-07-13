@@ -10,7 +10,6 @@ import com.wavesplatform.state._
 import com.wavesplatform.utils.dummyCompilerContext
 import org.scalatest.CancelAfterFailure
 import play.api.libs.json.JsNumber
-import scorex.account.PrivateKeyAccount
 import scorex.transaction.Proofs
 import scorex.transaction.smart.SetScriptTransaction
 import scorex.transaction.smart.script.v1.ScriptV1
@@ -22,16 +21,15 @@ Scenario:
 2. Create and setup smart contract for swapBC1
 3. Alice funds swapBC1t
 4. Alice can't take money from swapBC1
-5.1 Bob takes funds because he knows secret hash OR 5.2 Wait height and Alice takes funds back
+5.1 Bob takes funds because he knows secret hash and 5.2 after rollback wait height and Alice takes funds back
  */
 
 class AtomicSwapSmartContractSuite extends BaseTransactionSuite with CancelAfterFailure {
-
   private val BobBC1: String   = sender.createAddress()
   private val AliceBC1: String = sender.createAddress()
   private val swapBC1: String  = sender.createAddress()
 
-  private val AlicesPK = PrivateKeyAccount.fromSeed(sender.seed(AliceBC1)).explicitGet()
+  private val AlicesPK = pkFromAddress(AliceBC1)
 
   private val secretText = "some secret message from Alice"
   private val shaSecret  = "BN6RTYGWcwektQfSFzH8raYo9awaLgQ7pLyWLQY4S4F5"
@@ -63,7 +61,7 @@ class AtomicSwapSmartContractSuite extends BaseTransactionSuite with CancelAfter
       CompilerV1(dummyCompilerContext, untyped.head).explicitGet()._1
     }
 
-    val pkSwapBC1 = PrivateKeyAccount.fromSeed(sender.seed(swapBC1)).explicitGet()
+    val pkSwapBC1 = pkFromAddress(swapBC1)
     val script    = ScriptV1(sc1).explicitGet()
     val sc1SetTx = SetScriptTransaction
       .selfSigned(version = SetScriptTransaction.supportedVersions.head,
@@ -91,8 +89,8 @@ class AtomicSwapSmartContractSuite extends BaseTransactionSuite with CancelAfter
         .selfSigned(
           version = 2,
           assetId = None,
-          sender = PrivateKeyAccount.fromSeed(sender.seed(AliceBC1)).explicitGet(),
-          recipient = PrivateKeyAccount.fromSeed(sender.seed(swapBC1)).explicitGet(),
+          sender = pkFromAddress(AliceBC1),
+          recipient = pkFromAddress(swapBC1),
           amount = transferAmount + minFee + smartFee,
           timestamp = System.currentTimeMillis(),
           feeAssetId = None,
@@ -113,8 +111,8 @@ class AtomicSwapSmartContractSuite extends BaseTransactionSuite with CancelAfter
         .selfSigned(
           version = 2,
           assetId = None,
-          sender = PrivateKeyAccount.fromSeed(sender.seed(swapBC1)).explicitGet(),
-          recipient = PrivateKeyAccount.fromSeed(sender.seed(AliceBC1)).explicitGet(),
+          sender = pkFromAddress(swapBC1),
+          recipient = pkFromAddress(AliceBC1),
           amount = transferAmount,
           timestamp = System.currentTimeMillis(),
           feeAssetId = None,
@@ -138,8 +136,8 @@ class AtomicSwapSmartContractSuite extends BaseTransactionSuite with CancelAfter
         .create(
           version = 2,
           assetId = None,
-          sender = PrivateKeyAccount.fromSeed(sender.seed(swapBC1)).explicitGet(),
-          recipient = PrivateKeyAccount.fromSeed(sender.seed(BobBC1)).explicitGet(),
+          sender = pkFromAddress(swapBC1),
+          recipient = pkFromAddress(BobBC1),
           amount = transferAmount,
           timestamp = System.currentTimeMillis(),
           feeAssetId = None,
@@ -165,12 +163,14 @@ class AtomicSwapSmartContractSuite extends BaseTransactionSuite with CancelAfter
 
     nodes.waitForHeight(height + 20)
 
+    notMiner.accountBalances(swapBC1)
+
     val selfSignedToAlice = TransferTransactionV2
       .selfSigned(
         version = 2,
         assetId = None,
-        sender = PrivateKeyAccount.fromSeed(sender.seed(swapBC1)).explicitGet(),
-        recipient = PrivateKeyAccount.fromSeed(sender.seed(AliceBC1)).explicitGet(),
+        sender = pkFromAddress(swapBC1),
+        recipient = pkFromAddress(AliceBC1),
         amount = transferAmount,
         timestamp = System.currentTimeMillis(),
         feeAssetId = None,

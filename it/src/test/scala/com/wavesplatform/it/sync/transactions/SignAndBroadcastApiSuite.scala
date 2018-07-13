@@ -8,7 +8,7 @@ import com.wavesplatform.it.util._
 import com.wavesplatform.state._
 import org.asynchttpclient.util.HttpConstants
 import play.api.libs.json._
-import scorex.account.{PrivateKeyAccount, PublicKeyAccount}
+import scorex.account.{PublicKeyAccount}
 import scorex.api.http.assets.SignedTransferV1Request
 import com.wavesplatform.utils.Base58
 import scorex.transaction.assets.exchange.{AssetPair, ExchangeTransaction, Order}
@@ -286,13 +286,11 @@ class SignAndBroadcastApiSuite extends BaseTransactionSuite {
     val signature  = Base58.decode((signedRequestJson \ "signature").as[String]).get
     val tx         = signedRequest.toTx.explicitGet()
     val seed       = sender.seed(thirdAddress)
-    val privateKey = PrivateKeyAccount.fromSeed(seed).explicitGet()
+    val privateKey = pkFromAddress(seed)
     assert(crypto.verify(signature, tx.bodyBytes(), privateKey.publicKey))
   }
 
   test("/transactions/broadcast should produce ExchangeTransaction with custom asset") {
-    def pkFromAddress(address: String) = PrivateKeyAccount.fromSeed(sender.seed(address)).explicitGet()
-
     val issueTx = signAndBroadcast(
       Json.obj(
         "type"        -> 3,

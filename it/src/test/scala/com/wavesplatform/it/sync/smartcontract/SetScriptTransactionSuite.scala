@@ -11,15 +11,12 @@ import com.wavesplatform.state._
 import com.wavesplatform.utils.dummyCompilerContext
 import org.scalatest.CancelAfterFailure
 import play.api.libs.json.{JsNumber, Json}
-import scorex.account.PrivateKeyAccount
 import scorex.transaction.Proofs
 import scorex.transaction.smart.SetScriptTransaction
 import scorex.transaction.smart.script.v1.ScriptV1
 import scorex.transaction.transfer._
 
 class SetScriptTransactionSuite extends BaseTransactionSuite with CancelAfterFailure {
-  private def pkFromAddress(address: String) = PrivateKeyAccount.fromSeed(sender.seed(address)).explicitGet()
-
   private val fourthAddress: String = sender.createAddress()
 
   private val acc0 = pkFromAddress(firstAddress)
